@@ -9,13 +9,13 @@ I followed the instructions on canvas to set up and add BIOS6623 to my repositor
 
 A summary of how to push documents to GitHub:
 
-  1. Write documents, code, reports using word or text editor
+  1. Write documents, code, reports as needed using word or text editor
 
   2. Save documents in my local drive under repository folder and next appropriate folder
 
   3. Pull in GitKraken
 
-  4. Submit commit for change
+  4. Submit commit of change
 
   5. Push in GitKraken
 
