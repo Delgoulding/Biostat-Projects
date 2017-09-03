@@ -1,0 +1,72 @@
+**********************************************************************************;
+*	PROGRAM NAME: Project 0 BIOS6623 code										 *;
+*	DATE CREATED: September 2017												 *;
+*	LAST UPDATED: September 2017 												 *;
+*	PROGRAMMER: DeLayna Goulding	                            				 *;
+*	PURPOSE: Evaluate if treatment results in lower average 					 *;
+*	pocket depth and attachment loss at one year	     						 *;
+**********************************************************************************;
+
+
+options nocenter nodate nonumber source2 mprint symbolgen;
+ods escapechar='~';
+%let bold_style=~S={font_size=14pt font_weight=bold}~; 
+
+*--import dental data --* ;
+proc import dbms=xls out=dentalv1                                                                                                       
+datafile="/folders/myfolders/bios6623-delgoulding/Project0/raw data/Project0_dental_data (1).xls";                                                                                              
+getnames=YES;                                                                                                                           
+run; 
+*-- data management 
+	change control group (2) to reference group(0)
+	change race to account for missing 3--*;
+Data dentalv2;
+set dentalv1;
+trtgrp = . ;
+if trtgroup=1 then trtgrp=1;
+if trtgroup=2 then trtgrp=0;
+if trtgroup=3 then trtgrp=2;
+if trtgroup=4 then trtgrp=3;
+if trtgroup=5 then trtgrp=4;
+run;
+Data dentalv2;
+set dentalv2;
+race_new = . ;
+if race=1 then race_new=1;
+if race=2 then race_new=2;
+if race=4 then race_new=3;
+if race=5 then race_new=4;
+run;
+*--descriptive statistics by treatment group
+	create formats for coding --*;
+proc format;
+value trtgroup
+		0='Control'
+		1='Placebo'
+		2='low'
+		3='Medium'
+		4='High';                                                                                                                         
+value sex                                                                                                                               
+        1='M'                                                                                                                       
+        2='F';
+value race 
+		1='Native American'
+		2='African American'
+		3='Asian'
+		4='White';
+value smoke                                                                                                                         
+        0='No'                                                                                                                  
+        1='Yes';
+run;
+*-- descriptive statistics for table 1--*;
+proc freq data=dentalv2;
+tables trtgrp*(sex race_new smoker) / chisq fishers ;
+format sex sex. race_new race. smoker smoke.;
+run;
+proc means data=dentalv2;
+var age; 
+class trtgrp; /*block this for overall age*/
+run;
+
+
+
