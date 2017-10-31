@@ -3,9 +3,9 @@
 *	DATE CREATED: October 2017													 *;
 *	LAST UPDATED: October 2017 													 *;
 *	PROGRAMMER: DeLayna Goulding	                            				 *;
-*	PURPOSE: Find VA hospitals with low or high death rates compared to adjusted *;
+*	PURPOSE: Data management													 *;
 **********************************************************************************;
-
+*--Macros --*;
 %let va='/folders/myfolders/bios6623-delgoulding/Project2/Code/vadata2.sas7bdat';
 %let yr1_1=34;
 %let yr1_2=35;
@@ -17,10 +17,7 @@
 *--Data set is SAS so no need to import --*;
 Data va;
 set &va;
-if proced >= 2 then delete; /* delete 2 procedures */
-run;
-
-proc contents data=va;
+if proced >= 2 then delete; /* delete procedures that are not 1 or 2 */
 run;
 
 data va;
@@ -52,24 +49,45 @@ bmi_dif = bmi - bmic; /*create a delta to determine how different the bmis are*/
 run;
 
 proc print data=va ;
-where bmi_dif >1; /*decided that a difference of 1 might narrow down*/
-var hospcode bmi bmi2 height weight bmi_dif sixmonth; /*there are some BMIs that went drastically down, all BMIs are off a little?*/
+where bmi_dif >=1; /*decided that a difference of 1 might narrow down*/
+var hospcode bmi bmic height weight bmi_dif sixmonth; /*there are some BMIs that went drastically down, all BMIs are off a little?*/
+run;
+proc print data=va ;
+where bmi_dif <=.05 and sixmonth=&final; /*two or three that did not change per hospital were missing*/
+var hospcode bmi bmic height weight bmi_dif sixmonth; /*there are some BMIs that went drastically down, all BMIs are off a little?*/
+run;
+proc freq data=va;
+table hospcode*death30;
+where sixmonth=&final;
 run;
 *--1592 BMIs changed greater than 1 point, all in sixmonth 39--*;
 proc freq data=va;
 where bmi_dif >1;
-tables hospcode*(bmi bmi2 bmi_dif); /*there are some BMIs that went drastically down*/
+tables hospcode*(bmi bmic bmi_dif); /*there are some BMIs that went drastically down*/
 run;
 proc means data=va mean ;
-where bmi_dif >1;
+where bmi_dif <=0.5 and sixmonth=&final;
 class hospcode;
-var bmi bmi2; /*1-16 almost 100 BMIS change and two hospitals had etreme values that were good*/
+var bmi bmic; /*1-16 almost 100 BMIS change and two hospitals had etreme values that were good*/
 run;
 data va;
 set va;
-if bmi >65 then bmi2=bmic;
+if bmi_dif >=.05 then bmi2=bmic;
 else bmi2=bmi;
 run;
+
+proc means data=va;
+where sixmonth=&final;
+var albumin bmi2;
+run;
+
+proc means data=va  n nmiss mean std q1 q3 p50 min max median t probt;
+where sixmonth=&final;
+var bmi2 albumin;
+class hospcode;
+run;
+
+
 proc univariate data=va plots;
 class hospcode;
 var weight; /*1-16 almost 100 BMIS change and two hospitals had etreme values that were good*/
@@ -80,148 +98,97 @@ tables hospcode death30 asa proced sixmonth; /*44 hospitals, death30 not missing
 run;
 
 proc freq data=va;
+where sixmonth=&final;
+tables hospcode*(death30)/chisq fisher;
+run;
+
+
+proc freq data=va_delete;
 tables hospcode*(death30)/chisq;
-where sixmonth=&first_yr1;
+where sixmonth=&final;
 run;
 
 proc univariate plots data=va;
 class ratefinal;
-var death30 asa proced albumin;
-histogram death30 asa proced albumin;
+var death30 asa proced albumin bmi2;
+histogram death30 asa proced albumin bmi2;
 run;
 
-proc sql;
-create table va_demog as
-select hospcode
-	,proced 
-	,death30
-	,asa
-	,albumin
-	,sixmonth
-from va ;
-quit;
-run;
+/* Model 1: Logistic Regression with all covariates. Want to compare predicted values with albumin model v. without. ASA is creating a lot of noise, to adjust for this will collapse the categories. */
+proc logistic data=va plots=all;
+    class proced asa;
+    model death30 (event='1')=proced asa albumin BMI2 / cl;
+    OUTPUT OUT=work.predicted PREDICTED=ESTPROB L=LOWER95 U=UPPER95;
+    run;
+    
+/*Run a model without albumin and compare predicted probabilites */
 
-data va;
-set va;
-array h {*} ;
-do i = 1 - 44;
- h(i) = (hospcode=i);
-end;
-drop i;
-run;
+/* Model 2: Logisitic Regression without albumin. Compare predicted values with model 1 */
+proc logistic data=va    class proced asa;
+    model death30 (event='1')=proced asa albumin BMI2 / cl;
+    OUTPUT OUT=work.predicted PREDICTED=ESTPROB L=LOWER95 U=UPPER95;
+    run;
 
-data demograph_var;
-set va;
-drop proced
-	,death30
-	,asa
-	,albumin
-	,sixmonth
-from va;
+/* Determine which groups to combine in ASA */
+proc freq data=WORK.ANALYSIS;
+    tables asa / plots=(freqplot cumfreqplot);
+    weight death30;
 run;
-proc contents data=cea_vars out=cea_vars (keep=name varnum) noprint;
-run;
-proc sort data=cea_vars out=cea_vars;
-by varnum;
-run;
-
-*-- Create exposure table --*;
-%macro exposure;
-data _null_;
-set cea_vars;
-by varnum;
-if first.varnum then do;
-	i+1;
-	call symputx('name'||left(put(i,2.)),name);
-	call symputx('end',left(put(i,2.)));
-end;
-run;
-
-%do i=1 %to &end;
-proc sql;
-create table &&name&i as
-select "&&name&i" as var 
-	,sum(&&name&i^= '' and localid NOTIN &casegr) as Comparison_Denominator
-	,sum(&&name&i= 'Yes' and localid NOTIN &casegr )/sum(&&name&i^= '' and localid NOTIN &casegr) as Comparison_Rate format 8.2
-	,sum(&&name&i^= '' and localid IN &casegr) as Case_Denominator
-	,sum(&&name&i= 'Yes' and localid IN &casegr )/sum(&&name&i^= '' and localid IN &casegr) as Case_Rate format 8.2
-	,(sum(&&name&i= 'Yes' and localid IN &casegr) * sum(&&name&i= 'No' and localid NOTIN &casegr))/(sum(&&name&i= 'No' and localid IN &casegr) * sum(&&name&i= 'Yes' and localid NOTIN &casegr))as Odds_Ratio format 8.2
-from exposures;
-quit;
-%end;
-
-data exposure ;
-length var $22.;
-set %do i=1 %to &end;
-    &&name&i
-  %end;;
-run;
-%mend;
-
-%exposure;
-
-*-- Export exposure table to Excel  --*;
-ods tagsets.Excelxp file="J:\Programs\Enterics\FoodNet\Case Exposure Ascertainment\CEA_exposure_table.xls" style=analysis ;
-options (sheet_label = 'Rate_Table');
-;
-proc print data=exposure;
-run;
-ods _all_ close;
 
 
 data va;
 set va;
-array h{*} h1 - h44;
-do i = 1 - 44;
- h(i) = (hospcode=i);
-end;
-drop i;
+if asa<4 then NEWasa=1;
+if asa => 4 then NEWasa=2;
 run;
 
-*-- Create CEA variables and sort --*;
-data hos_code;
+
+/* Model 3: Logistic Regression without albumin and dichotomized ASA*/
+proc logistic data=va plots=all;
+    class proced NEWasa;
+    model death30 (event='1')=proced NEWasa BMI2 / cl;
+    OUTPUT OUT=work.predicted PREDICTED=ESTPROB L=LOWER95 U=UPPER95;
+    run;
+
+
+proc logistic data = va;
+class proced(ref="0") newasa / param=ref;
+model death30 (event = "1") = BMI2 proced newasa albumin/ covb;
+run;
+
+/* model without albumin*/
+proc logistic data = va;
+class proced(ref="0") newasa (ref="1") / param=ref;
+model death30 (event = "1") = BMI2 proced newasa/ covb;
+output out = expected predicted = exp;
+run;
+
+/*creates dataset with previous 5 periods*/
+data expected;
+set expected;
+if sixmonth lt '39';
+run;
+
+/*expected rate by hospital*/
+proc means data = expected mean stderr;
+class hospcode;
+var exp;
+run;
+
+data final;
 set va;
-keep hospcode ;
+if sixmonth = '39';
 run;
 
-*-- Create exposure table --*;
-%macro deathrate;
-data _null_;
-set hos_code;
-by hospcode;
-if first.varnum then do;
-	i+1;
-end;
+proc freq data=final;
+tables death30*hospcode / out = observed outpct;
 run;
 
-%do i=1 %to &end;
-proc sql;
-create table &&name&i as
-select "&&name&i" as var 
-	,sum(death30 when sixmonth=&first_yr1 and &&name&i) as year1_6month 8.22
-	,sum(death30 when sixmonth=&second_yr1 and &&name&i) as year1_12month 8.22
-	,sum(death30 when sixmonth=&first_yr2 and &&name&i) as year2_6month 8.22
-	,sum(death30 when sixmonth=&second_yr2 and &&name&i) as year2_12month 8.22
-	,sum(death30 when sixmonth=&first_yr3 and &&name&i) as year3_6month 8.22
-	,sum(death30 when sixmonth=&first_yr2 and &&name&i) as year3_final 8.22
-from va;
-quit;
-%end;
-
-data deathrate ;
-length var $22.;
-set %do i=1 %to &end;
-    &&name&i
-  %end;;
+proc ttest data=va ; /*no bias?*/
+class death30;
+var albumin ;
 run;
-%mend;
 
-%deathrate;
 
-*-- Export exposure table to Excel  --*;
-ods tagsets.Excelxls file="C:/Users/delaynagoulding/Desktop/hospital" style=analysis ;
-;
-proc print data=deathrate;
-run;
-ods _all_ close;
+
+
