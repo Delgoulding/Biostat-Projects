@@ -1,12 +1,21 @@
 This is the README file for Project 2- dataset 2
 
-In the code folder is the SAS code 
-In the document folder is outputs and an excel file for tables created
-In the report folder is the interim report
+CODE Folder 
+1. VA data management: data management
+2: VA descriptives: bivariate & missing data analysis
+3: VA Analysis: logistic regression
 
+Reports Folder
+1. Interim report - 10/18/17
+2. Final report - 11/1/17
 
+Doc Folder
+2. Output 1: logistic reg w/ albumin
+3. Output 2: logistic reg w/ new asa variable (0=1,2,3 & 1=4,5)
+4. Output 3: logistic reg w/o albumin
+ 
 
-DATA NOTES:
+DATA SUMMARY:
 Data received from 44 VA hospitals (hospcode).
 VA investigators want to know if the death rate (death30) is unusually high OR low. 
 
