@@ -44,7 +44,7 @@ Adjusted DR: #deathrates/n procedures (34-38)
 Expected DR: Death30 in logistic regression
 Observed DR: Actual Death30 (39) 
 
-adjusted for: bmi, albumin, asa, 
+adjusted for: bmi, albumin, asa, procedure
 
 observed, #died #seen rate and health procedure adjusted expected rate @ hospital level
 Pooling all the data for the rate is okay with us
