@@ -16,15 +16,15 @@ MCI: age of onset for MCI - 2055 no MCI,
 
 
 OUTCOMES: 
-(1) the Wechsler Memory Scale Logical Memory I Story A (logmemI) 
+(1) Wechsler Memory Scale Logical Memory I Story A (logmemI) 
 (2) Wechsler Memory Scale Logical Memory II Story A (logmemII) 
 (3) category fluency for animals (animals)
-(4) the Wechsler Adult Intelligence Scale-Revised Block Design (blockR)
+(4) Wechsler Adult Intelligence Scale-Revised Block Design (blockR)
 		
 GROUP: demind (dementia score) or CDR score? Need two consecutive CDRS > 0.5 to be classified as developing a MCI
 
 Data management ?s:
-389 vs. 156 
+389 vs. 156 = 289 eligible, but need more than 3
 is demind valid? 
 
 	 
