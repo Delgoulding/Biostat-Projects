@@ -24,7 +24,10 @@ OUTCOMES:
 GROUP: demind (dementia score) or CDR score? Need two consecutive CDRS > 0.5 to be classified as developing a MCI
 
 Data management ?s:
-389 vs. 156 = 289 eligible, but need more than 3
+216 eligible, but need more than 3
 is demind valid? 
+
+TABLE 1: averages for first visit (baseline). maybe differences five years out. 
+and then average time to onset
 
 	 
