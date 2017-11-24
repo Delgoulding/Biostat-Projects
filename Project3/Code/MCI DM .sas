@@ -3,44 +3,54 @@
 *	DATE CREATED: November 2017													 *;
 *	LAST UPDATED: November 2017 												 *;
 *	PROGRAMMER: DeLayna Goulding	                            				 *;
-*	PURPOSE: What is happening with people's memory as they age & onset MCI		 *;
-*	accelaration compared to normal aging process. 								 *;
+*	PURPOSE: Examine MCI database for issues/corrections  						 *;
 **********************************************************************************;
 
 *-- import data --*;
-proc import dbms=xls out=ad                                                                                                      
+proc import dbms=xls out=mci                                                                                                      
 datafile="/folders/myfolders/bios6623-delgoulding/Project3/Code/Project3Data.xls";  /*location of data*/                                                                                            
 getnames=YES;                                                                                                                           
 run; 
 
-*-- create a visit variable/ 0=baseline --*;
-data ad;
-set ad;
+*--examine data for outliers/missing data--*;
+proc contents data=mci;
+run;
+proc means data=mci n nmiss min max q1 q3 mean median; 
+run;
+/*missing 1800 from all four outcomes, but there doesn't look to be extreme values
+or a high amount of missing data, one person is missing SES so deleting that participant based on investigator request*/ 
+
+
+*-- create and delete variables --*;
+data mci;
+set mci;
+changept = max(0,age - ageonset +4); /*change point for rate of decline prior to mci*/
+age_int = age-67;					/*intercept age for interpretation*/
+age_onset = ageonset - 67;			/*intercept age onset for interpretation*/
+if ses = '.' then delete; 			/*delete the missing ses*/
+run;
+data count;
+set mci;
 by id;
-if first.id then visit= 0;
-else visit + 1;
+if first.id then visit_n = 0; visit_n + 1; /*visit number*/
 run;
 
-*--count visits & number outcomes to assist in selecting less than three--*;
+*-- CREATE DATASET FOR ANIMAL OUTCOME --*;
+*--count visits & number outcomes to remove participants <3 animal outcomes--*;
 proc sql;
-create table mci as
-select *, count(id) as total_visits
-from ad
+create table mci2 as
+select * 
+,count(id) as total_visits
+,count(animals) as total_animal
+from count
 group by id
 order by id;
 quit;
 
-data new2;
-set mci;
-if total_visits <2 then delete; /*drop participants with less than 3 visits*/ 
+
+*-- SAVE THIS DATASET --*;
+data animals;
+set mci2;
+if total_animal <3 then delete;
 run;
-
-*--examine data for outliers/missing data--*;
-proc contents data=new2;
-run;
-proc means data=new2 n nmiss min max q1 q3 mean median; /*missing 1800 ish from all four outcomes. Nothing else looks too unusual*/ 
-run;
-
-
-
 
