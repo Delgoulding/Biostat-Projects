@@ -29,15 +29,15 @@ FOLDERS
 (1)Code
 	(a) DM MCI: Data Management Code
 	(b) MCI Descriptives: Descriptive Statistics Code
-	(c) MCI Analysis:
+	(c) MCI Analysis: Proc Mixed for Animal Outcome
 (2)Reports
 	(a) Interim Report
 	(b) Report 3
+	(c) Presentation 3
 (3)Documents
+	(a) Spaghetti Plot of animal outcome by participant across age
+	(b) Tables: Tables used in reports
  
-
-TABLE 1: averages for first visit (baseline). maybe differences five years out. 
-and then average time to onset
 
 SPLINE TERM USED TO ALLOW FOR LINEAR/QUADRATIC TRENDS TO CHANGE AT SOME POINT PRIOR TO DEMENTIA DIAGNOSIS 
 
