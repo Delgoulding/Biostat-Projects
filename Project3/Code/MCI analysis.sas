@@ -24,7 +24,7 @@ data animal3;
 set animals;
 demind_age = demind*age; /*age not centered*/ 
 demind_agen= demind*age_int /*age centered on 67*/
-changepnt = max(0,(age - ageonset - 4));
+changepnt = max(0,(age - ageonset + 4));
 run; 
 
 *-- PEV: demind age_int, changept COV: gender, ses INT: demind_agen*; 
