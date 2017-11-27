@@ -7,7 +7,7 @@
 **********************************************************************************;
 
 *-- import data --*;
-proc import dbms=xls out=animal                                                                                                   
+proc import dbms=xls out=animals                                                                                                   
 datafile="/folders/myfolders/bios6623-delgoulding/Project3/Code/animals.xls";  /*location of data*/                                                                                            
 getnames=YES;                                                                                                                           
 run; 
@@ -15,14 +15,20 @@ run;
 
 *-- DESCRIPTIVE STATISTICS: TABLE 1 --*;
 *-- create a baseline dataset to examine demographics --*; 
-proc sort data=animal;
-by id;
+proc sort data=animals;
+by id age;
 run; 
 
 data base;
-set animal;
+set animals;
 by id;
-if first.id then output base;
+if first.id then output base; /*baseline*/
+run;
+
+data last;
+set animals;
+by id;
+if last.id then output last; /*last visit*/
 run;
 
 
@@ -43,26 +49,32 @@ class demind;
 run;
 ods tagsets.excelxp close;
 
-proc ttest data=base   ;
-var age  ses  animals   ;
+proc ttest data=base  ;
+var age  ses  animals visit_n  ;
 class demind;
 run;
 
 
-*-- create a fiveyr dataset to examine any demographic change --*; 
-proc sort data=animal;
-by visit_n;
+*-- look at demographic differences between MCI groups at last visit to get average time followed --*; 
+proc ttest data=last  ;
+var age  ses  animals visit_n  ;
+class demind;
 run;
 
-data five;
-set animal;
-by visit_n;
-if visit_n=4 then output five;
+
+*-- look at demographic differences between MCI groups after 10 years --*; 
+proc sort data=animals;
+by visit_n  ;
 run;
 
-*-- look at demographic differences between MCI groups after 5 years --*; 
+data ten;
+set animals;
+by visit_n;
+if visit_n=9 then output ten;
+run;
+
 title 'Categorical @ Baseline';
-proc freq data=five;
+proc freq data=ten;
 tables gender*demind/chisq; /*212 participants*/
 run;
 
@@ -71,19 +83,19 @@ file='/folders/myfolders/bios6623-delgoulding/Project3/table2.xls' /*location on
 STYLE=minimal;
 
 title 'Continuous @ Baseline';
-proc means data=five  n nmiss min max mean std  ;
+proc means data=ten  n nmiss min max mean std  ;
 var age ageonset ses logmemI logmemII animals blockR  ;
 class demind;
 run;
 ods tagsets.excelxp close;
 
-proc ttest data=five   ;
+proc ttest data=ten   ;
 var age  ses  animals   ;
 class demind;
 run;
 
 *-- average visits --*; 
-proc ttest data=animals  ;
+proc ttest data=animal  ;
 var visit_n  ;
 class demind;
 run;
@@ -100,25 +112,25 @@ run;
 /*overall the outcome @baseline looks good and satisfies assumptions */
 
 *-- SPAGHETTI PLOTS --*; 
-proc sgplot data=mci2;
+proc sgplot data=animals;
 title 'Spagehetti Plot of Wechsler Memory Scale Logical Memory I Story A ';
 series x=age y=logmemI / group=id grouplc=demind name='grouping';
 keylegend 'grouping' / type=linecolor;
 run;
 
-proc sgplot data=mci2;
+proc sgplot data=animals;
 title 'Spagehetti Plot of Wechsler Memory Scale Logical Memory II Story A ';
 series x=age y=logmemII / group=id grouplc=demind name='grouping';
 keylegend 'grouping' / type=linecolor;
 run;
 
-proc sgplot data=animal;
+proc sgplot data=animals;
 title 'Category fluency for animals';
 series x=age y=animals / group=id grouplc=demind name='grouping';
 keylegend 'grouping' / type=linecolor;
 run;
 
-proc sgplot data=mci2;
+proc sgplot data=animals;
 title 'Wechsler Adult Intelligence Scale-Revised Block Design';
 series x=age y=blockR / group=id grouplc=demind name='grouping';
 keylegend 'grouping' / type=linecolor;
@@ -127,3 +139,12 @@ run;
 /* plots show unique intercepts and slopes for each participant, but overall there is a
 decrease with age and demind has lower scores */
 
+*-- examining drop out --*;
+proc sgplot data=last;
+vbox total_visits / group=demind;
+run;
+
+proc print data=last;
+where total_visits <11 and demind=0; /*demind0=51 compared to 15*/
+var id total_visits;
+run;

@@ -24,7 +24,7 @@ or a high amount of missing data, one person is missing SES so deleting that par
 *-- create and delete variables --*;
 data mci;
 set mci;
-changepnt = max(0,(age - (ageonset +4)); /*change point for rate of decline prior to mci*/
+changepnt = max(0,(age - ageonset - 4); /*change point for rate of decline prior to mci*/
 age_int = age-67;					/*intercept age for interpretation*/
 age_onset = ageonset - 67;			/*intercept age onset for interpretation*/
 if ses = '.' then delete; 			/*delete the missing ses*/
